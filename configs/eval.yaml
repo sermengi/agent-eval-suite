@@ -1,0 +1,18 @@
+seed: 42
+reference_date: "2025-01-01"
+
+database:
+  path: "data/agent_eval.sqlite"
+
+models:
+  openai: "gpt-4o-mini"
+  huggingface: "mistralai/Mistral-7B-Instruct-v0.3"
+
+tools:
+  python_timeout_seconds: 5
+  allowed_python_modules:
+    - math
+    - statistics
+    - json
+    - datetime
+
