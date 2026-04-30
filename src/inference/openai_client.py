@@ -49,4 +49,8 @@ class OpenAIModelClient:
                     parse_error=parse_error,
                 )
             )
-        return ModelMessage(content=message.content, tool_calls=tool_calls or None)
+        return ModelMessage(
+            content=message.content,
+            tool_calls=tool_calls or None,
+            raw_response=response.model_dump(mode="json"),
+        )

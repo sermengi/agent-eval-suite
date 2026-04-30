@@ -20,6 +20,7 @@ class ModelMessage:
 
     content: str | None = None
     tool_calls: list[ToolCall] | None = None
+    raw_response: dict[str, Any] | None = None
 
 
 class ModelClient(Protocol):
