@@ -12,6 +12,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from scripts.generate_db import generate_database  # noqa: E402
 from src.agent.runner import AgentRunner  # noqa: E402
 from src.config import load_config  # noqa: E402
+from src.debugging.tracer import build_debug_tracer  # noqa: E402
 from src.inference.fake_client import FakeModelClient  # noqa: E402
 from src.inference.openai_client import OpenAIModelClient  # noqa: E402
 from src.logging.recorder import (  # noqa: E402
@@ -59,10 +60,26 @@ def main() -> None:
         raise RuntimeError("No tasks configured for evaluation.")
     task = tasks[0]
 
-    result = AgentRunner(client, config).run(task.description)
     timestamp = datetime.now(timezone.utc)
+    run_id = _run_id(timestamp)
+    debug_tracer = build_debug_tracer(
+        config=config,
+        run_id=run_id,
+        task_id=task.id,
+        model_name=model_name,
+        user_message=task.description,
+    )
+    result = AgentRunner(
+        client,
+        config,
+        debug_tracer=debug_tracer,
+        run_id=run_id,
+        task_id=task.id,
+        task_category=task.category,
+        adversarial_type=task.adversarial_type,
+    ).run(task.description)
     record = EvaluationRecord(
-        run_id=_run_id(timestamp),
+        run_id=run_id,
         timestamp=timestamp,
         model_name=model_name,
         task_id=task.id,

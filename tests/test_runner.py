@@ -278,6 +278,7 @@ def test_run_eval_cli_fake_client(tmp_path) -> None:
     raw_config["database"]["path"] = str(tmp_path / "cli.sqlite")
     raw_config["tasks"] = {"paths": [str(Path.cwd() / "tasks/normal/tasks_001_020.yaml")]}
     raw_config["results"] = {"output_path": str(tmp_path / "runs.jsonl")}
+    raw_config["debug"]["output_dir"] = str(tmp_path / "debug_traces")
     raw_config["judge"] = {
         "model": "gpt-4o-mini",
         "prompt_versions": {"tc": "v1", "af": "v1"},
@@ -318,3 +319,46 @@ def test_run_eval_cli_fake_client(tmp_path) -> None:
     assert record["scores"]["adversarial_robustness"] is None
     assert record["composite_score"] is None
     assert len(record["config_hash"]) == 64
+
+    debug_files = list((tmp_path / "debug_traces").glob("*.json"))
+    assert len(debug_files) == 1
+    debug_trace = json.loads(debug_files[0].read_text(encoding="utf-8"))
+    assert debug_trace["run_id"] == record["run_id"]
+    assert debug_trace["task_id"] == record["task_id"]
+    assert debug_trace["model_name"] == record["model_name"]
+    assert debug_trace["user_message"] == record["user_message"]
+
+
+def test_run_eval_cli_fake_client_skips_debug_trace_when_disabled(tmp_path) -> None:
+    config_path = tmp_path / "eval.yaml"
+    raw_config = yaml.safe_load(open("configs/eval.yaml", encoding="utf-8"))
+    raw_config["database"]["path"] = str(tmp_path / "cli.sqlite")
+    raw_config["tasks"] = {"paths": [str(Path.cwd() / "tasks/normal/tasks_001_020.yaml")]}
+    raw_config["results"] = {"output_path": str(tmp_path / "runs.jsonl")}
+    raw_config["debug"]["enabled"] = False
+    raw_config["debug"]["storage"] = "disabled"
+    raw_config["debug"]["output_dir"] = str(tmp_path / "debug_traces")
+    raw_config["judge"] = {
+        "model": "gpt-4o-mini",
+        "prompt_versions": {"tc": "v1", "af": "v1"},
+    }
+    config_path.write_text(yaml.safe_dump(raw_config), encoding="utf-8")
+
+    completed = subprocess.run(
+        [
+            sys.executable,
+            "scripts/run_eval.py",
+            "--config",
+            str(config_path),
+            "--client",
+            "fake",
+        ],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    assert completed.returncode == 0
+    assert "Logged task_001" in completed.stdout
+    assert (tmp_path / "runs.jsonl").exists()
+    assert not (tmp_path / "debug_traces").exists()
