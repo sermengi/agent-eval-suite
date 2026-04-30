@@ -6,6 +6,8 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
+from src.debugging.schemas import DebugTrace
+
 
 class ToolCallTraceRecord(BaseModel):
     """Validated JSON record for one agent tool call."""
@@ -76,6 +78,7 @@ class EvaluationRecord(BaseModel):
     judge_model: str
     judge_prompt_versions: dict[str, str]
     config_hash: str = Field(pattern=r"^[0-9a-f]{64}$")
+    debug_trace: DebugTrace | None = None
 
     @field_validator("timestamp")
     @classmethod

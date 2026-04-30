@@ -11,7 +11,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from scripts.generate_db import generate_database  # noqa: E402
 from src.agent.runner import AgentRunner  # noqa: E402
-from src.config import load_config  # noqa: E402
+from src.config import DebugStorage, load_config  # noqa: E402
 from src.debugging.tracer import build_debug_tracer  # noqa: E402
 from src.inference.fake_client import FakeModelClient  # noqa: E402
 from src.inference.openai_client import OpenAIModelClient  # noqa: E402
@@ -103,6 +103,7 @@ def main() -> None:
         judge_model=config.judge.model,
         judge_prompt_versions=config.judge.prompt_versions,
         config_hash=_config_hash(config_path),
+        debug_trace=result.debug_trace if config.debug.storage == DebugStorage.EMBEDDED else None,
     )
     output_path = ResultRecorder(config.results.output_path).record(record)
     print(f"Logged {task.id} to {output_path}")

@@ -8,7 +8,7 @@ from uuid import uuid4
 
 from src.agent.tool_registry import ToolExecutionResult, execute_tool, get_tool_schemas
 from src.config import EvalConfig
-from src.debugging.schemas import DebugEvent, DebugEventType
+from src.debugging.schemas import DebugEvent, DebugEventType, DebugTrace
 from src.debugging.tracer import DebugTracer, NoOpDebugTracer
 from src.inference.client import ModelClient, ModelMessage, ToolCall
 
@@ -19,6 +19,7 @@ class AgentRunResult:
 
     final_response: str
     tool_call_trace: list[ToolExecutionResult]
+    debug_trace: DebugTrace | None = None
 
 
 class AgentRunner:
@@ -147,8 +148,12 @@ class AgentRunner:
                         summary="Agent produced a final response.",
                         payload={"final_response": response.content},
                     )
-                    self._finish_trace()
-                    return AgentRunResult(final_response=response.content, tool_call_trace=trace)
+                    debug_trace = self._finish_trace()
+                    return AgentRunResult(
+                        final_response=response.content,
+                        tool_call_trace=trace,
+                        debug_trace=debug_trace,
+                    )
 
             error = f"Agent exceeded max step limit of {self._max_steps}"
             self._record_event(
@@ -158,10 +163,11 @@ class AgentRunner:
                 summary=error,
                 payload={"error": error, "max_steps": self._max_steps},
             )
-            self._finish_trace()
+            debug_trace = self._finish_trace()
             return AgentRunResult(
                 final_response=f"ERROR: {error}",
                 tool_call_trace=trace,
+                debug_trace=debug_trace,
             )
         except Exception as exc:
             self._record_event(
@@ -224,8 +230,8 @@ class AgentRunner:
             )
         )
 
-    def _finish_trace(self) -> None:
-        self._debug_tracer.finish(datetime.now(timezone.utc))
+    def _finish_trace(self) -> DebugTrace | None:
+        return self._debug_tracer.finish(datetime.now(timezone.utc))
 
     def _llm_response_payload(self, response: ModelMessage) -> dict[str, Any]:
         payload: dict[str, Any] = {
