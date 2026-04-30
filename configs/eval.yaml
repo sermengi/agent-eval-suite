@@ -4,6 +4,19 @@ reference_date: "2025-01-01"
 database:
   path: "data/agent_eval.sqlite"
 
+tasks:
+  paths:
+    - "tasks/normal/tasks_001_020.yaml"
+
+results:
+  output_path: "results/runs.jsonl"
+
+judge:
+  model: "gpt-4o-mini"
+  prompt_versions:
+    tc: "v1"
+    af: "v1"
+
 models:
   openai: "gpt-4o-mini"
   huggingface: "mistralai/Mistral-7B-Instruct-v0.3"
@@ -15,4 +28,3 @@ tools:
     - statistics
     - json
     - datetime
-
