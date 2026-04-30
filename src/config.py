@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import date
+from enum import StrEnum
 from pathlib import Path
 from typing import Sequence
 
@@ -40,6 +41,23 @@ class ResultsConfig(BaseModel):
     output_path: Path
 
 
+class DebugStorage(StrEnum):
+    """Supported debug trace storage modes."""
+
+    SEPARATE = "separate"
+    EMBEDDED = "embedded"
+    DISABLED = "disabled"
+
+
+class DebugConfig(BaseModel):
+    """Debug trace capture configuration."""
+
+    enabled: bool
+    storage: DebugStorage
+    output_dir: Path
+    include_raw_payloads: bool
+
+
 class JudgeConfig(BaseModel):
     """LLM-as-judge configuration for evaluation scoring."""
 
@@ -59,6 +77,7 @@ class EvalConfig(BaseModel):
     tools: ToolConfig
     tasks: TaskConfig
     results: ResultsConfig
+    debug: DebugConfig
     judge: JudgeConfig
 
 
@@ -95,6 +114,11 @@ def load_config(path: str | Path = "configs/eval.yaml") -> EvalConfig:
             update={"output_path": (base_dir / config.results.output_path).resolve()}
         )
         config = config.model_copy(update={"results": results})
+    if not config.debug.output_dir.is_absolute():
+        debug = config.debug.model_copy(
+            update={"output_dir": (base_dir / config.debug.output_dir).resolve()}
+        )
+        config = config.model_copy(update={"debug": debug})
     return config
 
 

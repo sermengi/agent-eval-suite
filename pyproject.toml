@@ -5,15 +5,19 @@ description = "Evaluation suite for function-calling data analyst agents"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
+    "fastapi>=0.115",
+    "jinja2>=3.1",
     "openai>=1.0",
     "pydantic>=2.0",
     "pyyaml>=6.0",
+    "uvicorn>=0.32",
 ]
 
 [dependency-groups]
 dev = [
     "black>=24.0",
     "flake8>=7.0",
+    "httpx>=0.28",
     "isort>=5.13",
     "pre-commit>=3.7",
     "pytest>=8.0",
@@ -41,4 +45,3 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src"]
-

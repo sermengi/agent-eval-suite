@@ -11,6 +11,12 @@ tasks:
 results:
   output_path: "results/runs.jsonl"
 
+debug:
+  enabled: true
+  storage: separate
+  output_dir: "results/debug_traces"
+  include_raw_payloads: true
+
 judge:
   model: "gpt-4o-mini"
   prompt_versions:
