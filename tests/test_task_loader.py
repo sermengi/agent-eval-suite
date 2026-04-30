@@ -129,3 +129,24 @@ notes: Invalid expected sequence test.
 
     with pytest.raises(ValidationError, match="expected_tool_sequence|acceptable_sequences"):
         load_task_file(task_path)
+
+
+def test_rejects_unknown_expected_tool_name(tmp_path: Path) -> None:
+    task_path = tmp_path / "task.yaml"
+    task_path.write_text(
+        """
+id: task_unknown_tool
+category: normal
+description: Invalid expected tool name.
+reference_answer: This should fail validation.
+expected_tool_sequence:
+  - acceptable_sequences:
+      - ["sql_quer"]
+adversarial_type: null
+notes: Unknown expected tool name test.
+""",
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ValidationError, match="unknown expected tool name"):
+        load_task_file(task_path)

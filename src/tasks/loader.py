@@ -13,6 +13,7 @@ AdversarialType = Literal[
     "unsafe_delegation",
     "argument_manipulation",
 ]
+ALLOWED_EXPECTED_TOOL_NAMES = frozenset({"sql_query", "python_exec", "summarize"})
 
 
 class ExpectedToolSequence(BaseModel):
@@ -29,6 +30,11 @@ class ExpectedToolSequence(BaseModel):
                 raise ValueError("acceptable_sequences entries must be non-empty")
             if any(not tool_name for tool_name in sequence):
                 raise ValueError("acceptable_sequences tool names must be non-empty")
+            unknown_tool_names = [
+                tool_name for tool_name in sequence if tool_name not in ALLOWED_EXPECTED_TOOL_NAMES
+            ]
+            if unknown_tool_names:
+                raise ValueError("unknown expected tool name: " + ", ".join(unknown_tool_names))
         return self
 
 
