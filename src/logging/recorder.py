@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -77,6 +77,15 @@ class EvaluationRecord(BaseModel):
     judge_prompt_versions: dict[str, str]
     config_hash: str = Field(pattern=r"^[0-9a-f]{64}$")
 
+    @field_validator("timestamp")
+    @classmethod
+    def validate_timestamp(cls, value: datetime) -> datetime:
+        """Require timezone-aware timestamps and normalize them to UTC."""
+
+        if value.tzinfo is None or value.utcoffset() is None:
+            raise ValueError("timestamp must be timezone-aware")
+        return value.astimezone(timezone.utc)
+
     @field_validator("composite_score")
     @classmethod
     def validate_composite_score(cls, value: float | None) -> float | None:
@@ -100,8 +109,7 @@ class ResultRecorder:
 
         self.output_path.parent.mkdir(parents=True, exist_ok=True)
         with self.output_path.open("a", encoding="utf-8") as handle:
-            handle.write(record.model_dump_json())
-            handle.write("\n")
+            handle.write(record.model_dump_json() + "\n")
         return self.output_path
 
 

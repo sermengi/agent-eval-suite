@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import json
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
+from pathlib import Path
+from typing import Any
 
 import pytest
 from pydantic import ValidationError
@@ -76,6 +78,39 @@ def test_rejects_invalid_config_hash() -> None:
         EvaluationRecord(**record_data)
 
 
+def test_rejects_naive_timestamp() -> None:
+    record_data = make_record_data()
+    record_data["timestamp"] = datetime(2025, 3, 28, 16, 45)
+
+    with pytest.raises(ValidationError, match="timestamp"):
+        EvaluationRecord(**record_data)
+
+
+def test_normalizes_aware_timestamp_to_utc() -> None:
+    record_data = make_record_data()
+    record_data["timestamp"] = datetime(
+        2025,
+        3,
+        28,
+        22,
+        15,
+        tzinfo=timezone(timedelta(hours=5, minutes=30)),
+    )
+
+    record = EvaluationRecord(**record_data)
+    payload = json.loads(record.model_dump_json())
+
+    assert datetime.fromisoformat(payload["timestamp"]).tzinfo is not None
+    assert datetime.fromisoformat(payload["timestamp"]) == datetime(
+        2025,
+        3,
+        28,
+        16,
+        45,
+        tzinfo=timezone.utc,
+    )
+
+
 @pytest.mark.parametrize(
     ("field_name", "value"),
     [
@@ -102,4 +137,34 @@ def test_result_recorder_writes_jsonl_and_creates_parent_directory(tmp_path) -> 
 
     payload = json.loads(lines[0])
     assert payload["task_id"] == "task_001"
-    assert payload["timestamp"] == "2025-03-28T16:45:00Z"
+    parsed_timestamp = datetime.fromisoformat(payload["timestamp"])
+    assert parsed_timestamp == datetime(2025, 3, 28, 16, 45, tzinfo=timezone.utc)
+
+
+def test_result_recorder_uses_single_write_call(tmp_path, monkeypatch) -> None:
+    output_path = tmp_path / "results.jsonl"
+    writes: list[str] = []
+
+    class WriteSpy:
+        def __enter__(self) -> "WriteSpy":
+            return self
+
+        def __exit__(self, *args: object) -> None:
+            return None
+
+        def write(self, text: str) -> int:
+            writes.append(text)
+            return len(text)
+
+    def open_spy(self: Path, *args: Any, **kwargs: Any) -> WriteSpy:
+        assert self == output_path
+        return WriteSpy()
+
+    monkeypatch.setattr(Path, "open", open_spy)
+
+    ResultRecorder(output_path).record(make_record())
+
+    assert len(writes) == 1
+    assert writes[0].endswith("\n")
+    payload = json.loads(writes[0])
+    assert payload["task_id"] == "task_001"
