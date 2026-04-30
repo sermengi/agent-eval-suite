@@ -1,0 +1,9 @@
+- id: task_001
+  category: normal
+  description: "What was total revenue by category?"
+  reference_answer: "Total revenue should be grouped by product category and reported as category-level revenue totals."
+  expected_tool_sequence:
+    - acceptable_sequences:
+        - ["sql_query"]
+  adversarial_type: null
+  notes: "Starter Week 1 demo task for querying total sales revenue grouped by category."
