@@ -1,0 +1,23 @@
+<article class="event-card">
+  <div class="event-meta">
+    <span class="step">Step {{ event.step }}</span>
+    <span>{{ event.event_type }}</span>
+    <time>{{ event.timestamp|timestamp }}</time>
+  </div>
+  <h3>{{ event.title }}</h3>
+  <p>{{ event.summary }}</p>
+
+  {% if event.payload.tool_name %}
+  <div class="payload-strip">
+    <span class="badge tool">{{ event.payload.tool_name }}</span>
+    {% if event.payload.was_blocked %}
+      <span class="badge severity-warning">blocked</span>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  <details>
+    <summary>Raw event JSON</summary>
+    <pre>{{ event|json }}</pre>
+  </details>
+</article>

@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% block title %}Runs - Agent Debug UI{% endblock %}
+{% block content %}
+<section class="page-head">
+  <div>
+    <h1>Runs</h1>
+    <p class="muted">{{ summary.total }} records</p>
+  </div>
+  <div class="filter-strip">
+    {% for name, value in filters.items() %}
+      {% if value %}
+        <span class="chip">{{ name }}: {{ value }}</span>
+      {% endif %}
+    {% endfor %}
+  </div>
+</section>
+
+<section class="summary-strip" aria-label="Run summary">
+  <div><span>{{ summary.total }}</span><label>Total</label></div>
+  <div><span>{{ summary.with_trace }}</span><label>Trace</label></div>
+  <div><span>{{ summary.diagnostics }}</span><label>Diagnostics</label></div>
+  <div><span>{{ summary.errors }}</span><label>Errors</label></div>
+</section>
+
+{% if runs %}
+<section class="table-wrap">
+  <table>
+    <thead>
+      <tr>
+        <th>Run</th>
+        <th>Model</th>
+        <th>Task</th>
+        <th>Category</th>
+        <th>Trace</th>
+        <th>Severity</th>
+        <th>Diagnostics</th>
+        <th>Timestamp</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for run in runs %}
+      <tr>
+        <td><a class="run-link" href="/runs/{{ run.run_id }}">{{ run.run_id }}</a></td>
+        <td>{{ run.model_name }}</td>
+        <td>{{ run.task_id }}</td>
+        <td>{{ run.task_category }}</td>
+        <td>
+          {% if run.trace_available %}
+            <span class="badge status-ok">Trace</span>
+          {% else %}
+            <span class="badge status-missing">Missing</span>
+          {% endif %}
+        </td>
+        <td><span class="badge severity-{{ run.max_severity }}">{{ run.max_severity }}</span></td>
+        <td>
+          {% if run.diagnostics %}
+            <ul class="diagnostic-list compact">
+              {% for diagnostic in run.diagnostics %}
+              <li>{{ diagnostic.title }}</li>
+              {% endfor %}
+            </ul>
+          {% else %}
+            <span class="muted">None</span>
+          {% endif %}
+        </td>
+        <td>{{ run.timestamp|timestamp }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% else %}
+<section class="empty-state">
+  <h2>No runs</h2>
+  <p class="muted">No evaluation records matched the current filters.</p>
+</section>
+{% endif %}
+{% endblock %}

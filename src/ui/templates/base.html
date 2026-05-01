@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}Agent Debug UI{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', path='debug.css') }}">
+  </head>
+  <body>
+    <header class="topbar">
+      <a class="brand" href="/runs">Agent Debug UI</a>
+      <nav class="nav">
+        <a href="/runs">Runs</a>
+        <a href="/api/runs">API</a>
+      </nav>
+    </header>
+    <main class="shell">
+      {% block content %}{% endblock %}
+    </main>
+  </body>
+</html>

@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% block title %}{{ run.run_id }} - Agent Debug UI{% endblock %}
+{% block content %}
+<section class="page-head">
+  <div>
+    <h1>{{ run.run_id }}</h1>
+    <p class="muted">{{ run.model_name }} / {{ run.task_id }}</p>
+  </div>
+  <div>
+    <span class="badge severity-{{ run.max_severity }}">{{ run.max_severity }}</span>
+    {% if run.trace_available %}
+      <span class="badge status-ok">Trace</span>
+    {% else %}
+      <span class="badge status-missing">Missing trace</span>
+    {% endif %}
+  </div>
+</section>
+
+<section class="summary-strip detail" aria-label="Run summary">
+  <div><span>{{ run.task_category }}</span><label>Category</label></div>
+  <div><span>{{ run.adversarial_type or "none" }}</span><label>Adversarial</label></div>
+  <div><span>{{ run.diagnostic_count }}</span><label>Diagnostics</label></div>
+  <div><span>{{ run.timestamp|timestamp }}</span><label>Timestamp</label></div>
+</section>
+
+<section class="layout">
+  <aside class="side-panel">
+    <h2>Sequence</h2>
+    {% if tool_sequence %}
+      <ol class="sequence-map">
+        {% for tool_name in tool_sequence %}
+        <li>{{ tool_name }}</li>
+        {% endfor %}
+      </ol>
+    {% else %}
+      <p class="muted">No tool calls recorded.</p>
+    {% endif %}
+
+    <h2>Diagnostics</h2>
+    {% if run.diagnostics %}
+      <ul class="diagnostic-list">
+        {% for diagnostic in run.diagnostics %}
+        <li>
+          <span class="badge severity-{{ diagnostic.severity }}">{{ diagnostic.severity }}</span>
+          <strong>{{ diagnostic.title }}</strong>
+          <p>{{ diagnostic.reason }}</p>
+        </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p class="muted">None</p>
+    {% endif %}
+
+    <h2>Answer</h2>
+    <p class="final-response">{{ run.record.final_response }}</p>
+  </aside>
+
+  <section class="timeline" aria-label="Debug timeline">
+    <h2>Timeline</h2>
+    {% if events %}
+      {% for event in events %}
+        {% include "_event_card.html" %}
+      {% endfor %}
+    {% else %}
+      <section class="empty-state">
+        <h3>No trace events</h3>
+        <p class="muted">Trace data is unavailable for this run.</p>
+      </section>
+    {% endif %}
+  </section>
+</section>
+{% endblock %}
