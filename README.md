@@ -41,6 +41,18 @@ Use `--client openai` only when `OPENAI_API_KEY` is set.
 The CLI loads the first configured YAML task, runs the agent, and appends one structured
 record to `results/runs.jsonl`. Generated result files are ignored by git.
 
+## Debug UI
+
+Generate local run artifacts, then start the read-only debug UI:
+
+```bash
+python scripts/run_eval.py --config configs/eval.yaml --client fake
+python scripts/run_debug_ui.py --config configs/eval.yaml
+```
+
+The UI lets you inspect existing run records and debug traces. It does not start
+evaluations or modify result files.
+
 ## Tasks
 
 Tasks are defined in YAML under `tasks/` and are configured through

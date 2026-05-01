@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import importlib
 from pathlib import Path
 
 from fastapi.testclient import TestClient
@@ -147,3 +148,20 @@ def test_api_run_detail_returns_404_for_unknown_run(tmp_path: Path) -> None:
     response = client.get("/api/runs/not-a-run")
 
     assert response.status_code == 404
+
+
+def test_debug_ui_entrypoint_runs_uvicorn_with_cli_arguments(monkeypatch) -> None:
+    module = importlib.import_module("scripts.run_debug_ui")
+    captured: dict[str, object] = {}
+
+    def fake_run(app: object, *, host: str, port: int) -> None:
+        captured["app"] = app
+        captured["host"] = host
+        captured["port"] = port
+
+    monkeypatch.setattr(module.uvicorn, "run", fake_run)
+    module.main(["--config", "configs/eval.yaml", "--host", "0.0.0.0", "--port", "9001"])
+
+    assert captured["host"] == "0.0.0.0"
+    assert captured["port"] == 9001
+    assert captured["app"].title == "Agent Debug UI"
