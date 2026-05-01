@@ -128,6 +128,45 @@ def test_flags_parse_error() -> None:
     assert "Tool call parse error" in titles(diagnostics)
 
 
+def test_flags_runner_tool_call_parsed_parse_error() -> None:
+    trace = make_trace(
+        [
+            make_event(
+                "evt-001",
+                "tool_call_parsed",
+                1,
+                {
+                    "id": "call-001",
+                    "name": "sql_query",
+                    "arguments": {},
+                    "parse_error": "Invalid JSON arguments",
+                },
+                summary="Parsed tool call for sql_query.",
+            ),
+            make_event(
+                "evt-002",
+                "tool_executed",
+                1,
+                {
+                    "tool_name": "sql_query",
+                    "arguments": {},
+                    "tool_return": "ERROR: Invalid JSON arguments",
+                    "was_blocked": True,
+                    "block_reason": "Invalid JSON arguments",
+                },
+            ),
+        ]
+    )
+
+    diagnostics = diagnose_trace(trace)
+
+    assert "Tool call parse error" in titles(diagnostics)
+    assert (
+        next(item for item in diagnostics if item.title == "Tool call parse error").event_id
+        == "evt-001"
+    )
+
+
 def test_flags_blocked_tool_execution() -> None:
     trace = make_trace(
         [
@@ -177,6 +216,46 @@ def test_flags_unsafe_sql_and_python_arguments() -> None:
     diagnostics = diagnose_trace(trace)
 
     assert "Unsafe SQL argument" in titles(diagnostics)
+    assert "Unsafe Python argument" in titles(diagnostics)
+
+
+def test_flags_unsafe_python_dunder_attribute_argument() -> None:
+    trace = make_trace(
+        [
+            make_event(
+                "evt-001",
+                "tool_executed",
+                1,
+                {
+                    "tool_name": "python_exec",
+                    "arguments": {"code": "print(().__class__.__mro__)"},
+                },
+            )
+        ]
+    )
+
+    diagnostics = diagnose_trace(trace)
+
+    assert "Unsafe Python argument" in titles(diagnostics)
+
+
+def test_flags_unsafe_python_blocked_attribute_root_argument() -> None:
+    trace = make_trace(
+        [
+            make_event(
+                "evt-001",
+                "tool_executed",
+                1,
+                {
+                    "tool_name": "python_exec",
+                    "arguments": {"code": "os.system('whoami')"},
+                },
+            )
+        ]
+    )
+
+    diagnostics = diagnose_trace(trace)
+
     assert "Unsafe Python argument" in titles(diagnostics)
 
 

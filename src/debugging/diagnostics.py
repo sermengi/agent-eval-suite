@@ -7,7 +7,11 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict
 
-from src.agent.tools import BLOCKED_PYTHON_NAMES, BLOCKED_SQL_KEYWORDS
+from src.agent.tools import (
+    BLOCKED_ATTRIBUTE_ROOTS,
+    BLOCKED_PYTHON_NAMES,
+    BLOCKED_SQL_KEYWORDS,
+)
 from src.debugging.schemas import DebugEvent, DebugTrace
 from src.tasks.loader import ExpectedToolSequence
 
@@ -173,16 +177,21 @@ def _diagnose_repeated_tools(tool_events: list[dict[str, str]]) -> list[DebugDia
 
 
 def _diagnose_parse_error(event: DebugEvent) -> list[DebugDiagnostic]:
-    if event.event_type != "run_error":
+    if event.event_type == "tool_call_parsed" and event.payload.get("parse_error"):
+        reason = _payload_string(event, "parse_error")
+    elif event.event_type == "run_error":
+        text = _event_text(event)
+        if "parse" not in text and "json" not in text:
+            return []
+        reason = "The run reported a tool-call parsing error."
+    else:
         return []
-    text = _event_text(event)
-    if "parse" not in text and "json" not in text:
-        return []
+
     return [
         DebugDiagnostic(
             severity="error",
             title="Tool call parse error",
-            reason="The run reported a tool-call parsing error.",
+            reason=reason,
             event_id=event.event_id,
         )
     ]
@@ -330,4 +339,19 @@ def _unsafe_python_reason(code: str) -> str | None:
                 return f"Python argument imports blocked module: {node.module}."
         elif isinstance(node, ast.Name) and node.id in BLOCKED_PYTHON_NAMES:
             return f"Python argument uses blocked name: {node.id}."
+        elif isinstance(node, ast.Attribute):
+            if node.attr.startswith("__") and node.attr.endswith("__"):
+                return f"Python argument uses blocked dunder attribute: {node.attr}."
+            root = _attribute_root(node)
+            if root in BLOCKED_ATTRIBUTE_ROOTS:
+                return f"Python argument uses blocked module or attribute: {root}."
+    return None
+
+
+def _attribute_root(node: ast.Attribute) -> str | None:
+    current: ast.AST = node
+    while isinstance(current, ast.Attribute):
+        current = current.value
+    if isinstance(current, ast.Name):
+        return current.id
     return None
