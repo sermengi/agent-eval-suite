@@ -1,0 +1,92 @@
+<h2>Which debugger layout feels most useful?</h2>
+<p class="subtitle">Focus on how you would catch prompt/model behavior problems: exact messages, raw LLM response, parsed tool calls, and final answer.</p>
+
+<div class="cards">
+  <div class="card" data-choice="a" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div class="mockup">
+        <div class="mockup-header">A. Timeline-first inspector</div>
+        <div class="mockup-body">
+          <div style="display:grid;grid-template-columns:260px 1fr;gap:14px;min-height:260px">
+            <div class="mock-sidebar">
+              <div style="font-weight:700;margin-bottom:10px">Runs</div>
+              <div class="placeholder" style="height:34px;margin-bottom:8px">task_001 / gpt-4o-mini</div>
+              <div class="placeholder" style="height:34px;margin-bottom:8px">task_002 / fake</div>
+              <div class="placeholder" style="height:34px">task_003 / openai</div>
+            </div>
+            <div class="mock-content">
+              <div style="font-weight:700;margin-bottom:10px">Trace Timeline</div>
+              <div class="placeholder" style="height:38px;margin-bottom:8px">User message</div>
+              <div class="placeholder" style="height:38px;margin-bottom:8px">LLM request messages</div>
+              <div class="placeholder" style="height:38px;margin-bottom:8px">LLM returned tool call</div>
+              <div class="placeholder" style="height:38px;margin-bottom:8px">Tool result</div>
+              <div class="placeholder" style="height:38px">Final response</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>Timeline-first</h3>
+      <p>Best when the main question is: what happened, in what order, and where did the behavior go wrong?</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="b" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div class="mockup">
+        <div class="mockup-header">B. Split payload inspector</div>
+        <div class="mockup-body">
+          <div style="display:grid;grid-template-columns:220px 1fr 1fr;gap:12px;min-height:260px">
+            <div class="mock-sidebar">
+              <div style="font-weight:700;margin-bottom:10px">Events</div>
+              <div class="placeholder" style="height:30px;margin-bottom:8px">Request</div>
+              <div class="placeholder" style="height:30px;margin-bottom:8px">Response</div>
+              <div class="placeholder" style="height:30px">Parsed call</div>
+            </div>
+            <div class="mock-content">
+              <div style="font-weight:700;margin-bottom:10px">Curated View</div>
+              <div class="placeholder" style="height:68px;margin-bottom:8px">Message stack</div>
+              <div class="placeholder" style="height:68px;margin-bottom:8px">Tool schema</div>
+              <div class="placeholder" style="height:68px">Parsed fields</div>
+            </div>
+            <div class="mock-content">
+              <div style="font-weight:700;margin-bottom:10px">Raw JSON</div>
+              <div class="placeholder" style="height:214px">Provider payload</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>Split inspector</h3>
+      <p>Best when comparing cleaned agent state against raw provider payloads is the core debugging activity.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="c" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div class="mockup">
+        <div class="mockup-header">C. Sequence-first trace map</div>
+        <div class="mockup-body">
+          <div style="display:grid;grid-template-columns:1fr;gap:10px;min-height:260px">
+            <div class="mock-content">
+              <div style="font-weight:700;margin-bottom:10px">Agent -> LLM -> Tool -> Agent</div>
+              <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px">
+                <div class="placeholder" style="height:190px">Agent state</div>
+                <div class="placeholder" style="height:190px">LLM request/response</div>
+                <div class="placeholder" style="height:190px">Tool execution</div>
+                <div class="placeholder" style="height:190px">Next agent state</div>
+              </div>
+            </div>
+            <div class="placeholder" style="height:34px">Selected step detail expands below</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>Sequence map</h3>
+      <p>Best when you want to reason about handoffs between components more than individual JSON payloads.</p>
+    </div>
+  </div>
+</div>
