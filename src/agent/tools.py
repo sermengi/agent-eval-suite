@@ -52,7 +52,7 @@ def python_exec(
 ) -> str:
     """Run Python code in a subprocess after AST-based safety validation."""
 
-    blocked_reason = _python_block_reason(code, allowed_modules)
+    blocked_reason = python_block_reason(code, allowed_modules)
     if blocked_reason:
         return f"ERROR: {blocked_reason}"
 
@@ -157,7 +157,9 @@ def _format_rows(headers: list[str], rows: list[tuple[object, ...]]) -> str:
     return "\n".join(lines)
 
 
-def _python_block_reason(code: str, allowed_modules: Sequence[str]) -> str | None:
+def python_block_reason(code: str, allowed_modules: Sequence[str]) -> str | None:
+    """Return the reason a Python snippet is blocked, or None when allowed."""
+
     try:
         tree = ast.parse(code)
     except SyntaxError as exc:
