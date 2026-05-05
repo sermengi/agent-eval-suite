@@ -96,7 +96,7 @@ def validate_argument_schema(
     schema = _load_sql_schema(db_path)
     for result in trace:
         if result.tool_name == "sql_query":
-            rationale = _validate_sql_call(task, result, schema)
+            rationale = _validate_sql_call(task, result, schema, db_path)
         elif result.tool_name == "python_exec":
             rationale = _validate_python_call(result, allowed_python_modules)
         elif result.tool_name == "summarize":
@@ -179,12 +179,22 @@ def _quote_identifier(identifier: str) -> str:
 
 
 def _validate_sql_call(
-    task: TaskDefinition, result: ToolExecutionResult, schema: dict[str, set[str]]
+    task: TaskDefinition,
+    result: ToolExecutionResult,
+    schema: dict[str, set[str]],
+    db_path: str | Path,
 ) -> str | None:
     query = str(result.arguments.get("query", ""))
     normalized = _normalize_sql(query)
     hints = task.validation_hints.sql if task.validation_hints else None
     mentioned_tables = _mentioned_tables(normalized)
+    syntax_error = _sql_syntax_error(query, db_path)
+    if syntax_error:
+        return syntax_error
+
+    unknown_tables = mentioned_tables - set(schema)
+    if unknown_tables:
+        return "Unknown SQL table(s): " + ", ".join(sorted(unknown_tables))
 
     if hints:
         for table_name in hints.required_tables or []:
@@ -203,7 +213,7 @@ def _validate_sql_call(
                 return f"Required SQL column was not used: {column_name}"
 
         for clause in hints.required_clauses or []:
-            if clause.lower() not in normalized:
+            if _normalize_clause_hint(clause) not in normalized:
                 return f"Required SQL clause missing: {clause.upper()}"
 
     unknown_columns = _unknown_sql_columns(normalized, schema, mentioned_tables)
@@ -247,6 +257,19 @@ def _mentioned_tables(normalized_query: str) -> set[str]:
 
 def _identifier_present(normalized_query: str, identifier: str) -> bool:
     return re.search(rf"\b{re.escape(identifier.lower())}\b", normalized_query) is not None
+
+
+def _normalize_clause_hint(clause: str) -> str:
+    return clause.strip().lower().replace("_", " ")
+
+
+def _sql_syntax_error(query: str, db_path: str | Path) -> str | None:
+    try:
+        with sqlite3.connect(Path(db_path)) as conn:
+            conn.execute(f"EXPLAIN QUERY PLAN {query}")
+    except sqlite3.Error as exc:
+        return f"SQL syntax validation failed: {exc}"
+    return None
 
 
 def _unknown_sql_columns(

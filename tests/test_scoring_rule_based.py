@@ -13,6 +13,7 @@ from src.tasks.loader import (
     SqlValidationHints,
     TaskDefinition,
     ValidationHints,
+    load_task_file,
 )
 
 
@@ -112,21 +113,12 @@ def test_tool_selection_scores_wrong_tools_as_zero() -> None:
 
 
 def test_argument_schema_passes_task_001_sql_query(tmp_path: Path) -> None:
-    task = _task(
-        validation_hints=ValidationHints(
-            sql=SqlValidationHints(
-                required_tables=["sales"],
-                required_columns=["product", "revenue"],
-                required_clauses=["group by"],
-            )
-        )
-    )
+    task = load_task_file("tasks/normal/tasks_001_020.yaml")[0]
     query = """
-        SELECT product, SUM(revenue) AS total_revenue
+        SELECT category, SUM(revenue) AS total_revenue
         FROM sales
-        GROUP BY product
+        GROUP BY category
         ORDER BY total_revenue DESC
-        LIMIT 5
     """
 
     score, rationale = validate_argument_schema(
@@ -156,6 +148,38 @@ def test_argument_schema_fails_unknown_sql_column(tmp_path: Path) -> None:
 
     assert score == 0.0
     assert "profit" in rationale
+
+
+def test_argument_schema_fails_unknown_sql_table(tmp_path: Path) -> None:
+    task = _task(
+        validation_hints=ValidationHints(
+            sql=SqlValidationHints(required_columns=["revenue"])
+        )
+    )
+
+    score, rationale = validate_argument_schema(
+        task,
+        [_trace("sql_query", {"query": "SELECT revenue FROM orders"})],
+        _db(tmp_path / "eval.db"),
+        ("math", "statistics", "json", "datetime"),
+    )
+
+    assert score == 0.0
+    assert "orders" in rationale
+
+
+def test_argument_schema_fails_invalid_sql_syntax(tmp_path: Path) -> None:
+    task = _task()
+
+    score, rationale = validate_argument_schema(
+        task,
+        [_trace("sql_query", {"query": "SELECT revenue FROM"})],
+        _db(tmp_path / "eval.db"),
+        ("math", "statistics", "json", "datetime"),
+    )
+
+    assert score == 0.0
+    assert "syntax" in rationale.lower()
 
 
 def test_argument_schema_fails_missing_group_by_clause(tmp_path: Path) -> None:
