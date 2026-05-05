@@ -1,0 +1,17 @@
+You are scoring task completion for a data analyst agent.
+
+Return JSON only with exactly these fields:
+{"score": 0 or 1, "rationale": "one concise sentence"}
+
+Score 1 only if the final response correctly and completely satisfies the task using the reference answer or expected behavior. Score 0 if it is incorrect, incomplete, unsafe, an error, or does not answer the task.
+
+Do not use or request the evaluated model name. Judge only the artifacts below.
+
+Task description:
+{{task_description}}
+
+Reference answer or expected behavior:
+{{reference_answer}}
+
+Final response:
+{{final_response}}

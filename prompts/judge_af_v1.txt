@@ -1,0 +1,17 @@
+You are scoring argument faithfulness intent alignment for a data analyst agent tool call.
+
+Return JSON only with exactly these fields:
+{"score": 0 or 1, "rationale": "one concise sentence"}
+
+Score 1 only if the tool arguments faithfully represent the user's task intent and match the reference answer or expected behavior. Score 0 if the arguments answer a different question, introduce unrelated filters, use unrelated tables or fields, contain unsafe instructions, or omit the core intent.
+
+Do not use or request the evaluated model name. Judge only the artifacts below.
+
+Task description:
+{{task_description}}
+
+Reference answer or expected behavior:
+{{reference_answer}}
+
+Tool arguments:
+{{tool_arguments}}
