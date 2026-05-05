@@ -9,10 +9,14 @@ import pytest
 from pydantic import ValidationError
 
 from src.logging.recorder import (
+    AdversarialRobustnessScore,
+    ArgumentFaithfulnessScore,
     EvaluationRecord,
     ResultRecorder,
     ScoreRecord,
+    TaskCompletionScore,
     ToolCallTraceRecord,
+    ToolSelectionAccuracyScore,
 )
 
 VALID_CONFIG_HASH = "a" * 64
@@ -41,12 +45,27 @@ def make_record_data() -> dict[str, object]:
         ],
         "final_response": "Total revenue by category is ...",
         "scores": ScoreRecord(
-            task_completion=None,
-            task_completion_rationale=None,
-            tool_selection_accuracy=None,
-            argument_faithfulness_schema=None,
-            argument_faithfulness_intent=None,
-            argument_faithfulness_final=None,
+            task_completion=TaskCompletionScore(
+                score=1,
+                rationale="The answer matches the reference.",
+                judge_model="gpt-4o-mini",
+                prompt_version="v1",
+            ),
+            tool_selection_accuracy=ToolSelectionAccuracyScore(
+                score=1.0,
+                rationale="The agent called the expected SQL tool.",
+                expected_sequences=[["sql_query"], ["sql_query", "summarize"]],
+                actual_sequence=["sql_query"],
+            ),
+            argument_faithfulness=ArgumentFaithfulnessScore(
+                schema_score=1.0,
+                schema_rationale="The SQL references valid schema elements.",
+                intent_score=1.0,
+                intent_rationale="The SQL answers the requested revenue breakdown.",
+                final_score=1.0,
+                judge_model="gpt-4o-mini",
+                prompt_version="v1",
+            ),
             adversarial_robustness=None,
         ),
         "composite_score": None,
@@ -66,7 +85,8 @@ def test_valid_full_record_with_nullable_scores_validates() -> None:
     record = make_record()
 
     assert record.task_id == "task_001"
-    assert record.scores.task_completion is None
+    assert record.scores.task_completion.score == 1
+    assert record.scores.adversarial_robustness is None
     assert record.tool_call_trace[0].step == 1
 
 
@@ -112,19 +132,85 @@ def test_normalizes_aware_timestamp_to_utc() -> None:
 
 
 @pytest.mark.parametrize(
-    ("field_name", "value"),
+    ("score_model", "field_name", "payload"),
     [
-        ("task_completion", 2),
-        ("adversarial_robustness", -1),
-        ("tool_selection_accuracy", 1.1),
-        ("argument_faithfulness_schema", -0.1),
-        ("argument_faithfulness_intent", 1.2),
-        ("argument_faithfulness_final", 9.0),
+        (
+            TaskCompletionScore,
+            "score",
+            {
+                "score": 2,
+                "rationale": "Invalid binary score.",
+                "judge_model": "gpt-4o-mini",
+                "prompt_version": "v1",
+            },
+        ),
+        (
+            AdversarialRobustnessScore,
+            "score",
+            {
+                "score": -1,
+                "rationale": "Invalid binary score.",
+                "detected_failure_modes": [],
+            },
+        ),
+        (
+            ToolSelectionAccuracyScore,
+            "score",
+            {
+                "score": 1.1,
+                "rationale": "Invalid unit interval score.",
+                "expected_sequences": [["sql_query"]],
+                "actual_sequence": ["sql_query"],
+            },
+        ),
+        (
+            ArgumentFaithfulnessScore,
+            "schema_score",
+            {
+                "schema_score": -0.1,
+                "schema_rationale": "Invalid unit interval score.",
+                "intent_score": 1.0,
+                "intent_rationale": "Valid intent score.",
+                "final_score": 1.0,
+                "judge_model": "gpt-4o-mini",
+                "prompt_version": "v1",
+            },
+        ),
+        (
+            ArgumentFaithfulnessScore,
+            "intent_score",
+            {
+                "schema_score": 1.0,
+                "schema_rationale": "Valid schema score.",
+                "intent_score": 1.2,
+                "intent_rationale": "Invalid unit interval score.",
+                "final_score": 1.0,
+                "judge_model": "gpt-4o-mini",
+                "prompt_version": "v1",
+            },
+        ),
+        (
+            ArgumentFaithfulnessScore,
+            "final_score",
+            {
+                "schema_score": 1.0,
+                "schema_rationale": "Valid schema score.",
+                "intent_score": 1.0,
+                "intent_rationale": "Valid intent score.",
+                "final_score": 9.0,
+                "judge_model": "gpt-4o-mini",
+                "prompt_version": "v1",
+            },
+        ),
     ],
 )
-def test_rejects_out_of_range_scores(field_name: str, value: int | float) -> None:
+def test_rejects_out_of_range_scores(
+    score_model: type,
+    field_name: str,
+    payload: dict[str, object],
+) -> None:
     with pytest.raises(ValidationError, match=field_name):
-        ScoreRecord(**{field_name: value})
+        score_model(**payload)
 
 
 def test_result_recorder_writes_jsonl_and_creates_parent_directory(tmp_path) -> None:

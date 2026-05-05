@@ -22,41 +22,97 @@ class ToolCallTraceRecord(BaseModel):
     block_reason: str | None
 
 
-class ScoreRecord(BaseModel):
-    """Validated per-dimension scores for one evaluation record."""
+class TaskCompletionScore(BaseModel):
+    """Validated task completion score for one evaluation record."""
 
     model_config = ConfigDict(extra="forbid")
 
-    task_completion: int | None = None
-    task_completion_rationale: str | None = None
-    tool_selection_accuracy: float | None = None
-    argument_faithfulness_schema: float | None = None
-    argument_faithfulness_intent: float | None = None
-    argument_faithfulness_final: float | None = None
-    adversarial_robustness: int | None = None
+    score: int
+    rationale: str
+    judge_model: str
+    prompt_version: str
 
-    @field_validator("task_completion", "adversarial_robustness")
+    @field_validator("score")
     @classmethod
-    def validate_binary_score(cls, value: int | None) -> int | None:
-        """Validate nullable binary score fields."""
+    def validate_binary_score(cls, value: int) -> int:
+        """Validate binary score fields."""
 
-        if value is not None and value not in {0, 1}:
+        if value not in {0, 1}:
             raise ValueError("binary score must be 0 or 1")
         return value
 
-    @field_validator(
-        "tool_selection_accuracy",
-        "argument_faithfulness_schema",
-        "argument_faithfulness_intent",
-        "argument_faithfulness_final",
-    )
-    @classmethod
-    def validate_unit_interval_score(cls, value: float | None) -> float | None:
-        """Validate nullable float score fields."""
 
-        if value is not None and not 0.0 <= value <= 1.0:
+class ToolSelectionAccuracyScore(BaseModel):
+    """Validated tool selection accuracy score for one evaluation record."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    score: float
+    rationale: str
+    expected_sequences: list[list[str]]
+    actual_sequence: list[str]
+
+    @field_validator("score")
+    @classmethod
+    def validate_unit_interval_score(cls, value: float) -> float:
+        """Validate unit interval score fields."""
+
+        if not 0.0 <= value <= 1.0:
             raise ValueError("score must be between 0.0 and 1.0")
         return value
+
+
+class ArgumentFaithfulnessScore(BaseModel):
+    """Validated argument faithfulness score for one evaluation record."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    schema_score: float
+    schema_rationale: str
+    intent_score: float
+    intent_rationale: str
+    final_score: float
+    judge_model: str
+    prompt_version: str
+
+    @field_validator("schema_score", "intent_score", "final_score")
+    @classmethod
+    def validate_unit_interval_score(cls, value: float) -> float:
+        """Validate unit interval score fields."""
+
+        if not 0.0 <= value <= 1.0:
+            raise ValueError("score must be between 0.0 and 1.0")
+        return value
+
+
+class AdversarialRobustnessScore(BaseModel):
+    """Validated adversarial robustness score for one evaluation record."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    score: int
+    rationale: str
+    detected_failure_modes: list[str]
+
+    @field_validator("score")
+    @classmethod
+    def validate_binary_score(cls, value: int) -> int:
+        """Validate binary score fields."""
+
+        if value not in {0, 1}:
+            raise ValueError("binary score must be 0 or 1")
+        return value
+
+
+class ScoreRecord(BaseModel):
+    """Validated nested per-dimension scores for one evaluation record."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    task_completion: TaskCompletionScore
+    tool_selection_accuracy: ToolSelectionAccuracyScore
+    argument_faithfulness: ArgumentFaithfulnessScore
+    adversarial_robustness: AdversarialRobustnessScore | None
 
 
 class EvaluationRecord(BaseModel):
@@ -114,10 +170,3 @@ class ResultRecorder:
         with self.output_path.open("a", encoding="utf-8") as handle:
             handle.write(record.model_dump_json() + "\n")
         return self.output_path
-
-
-def build_placeholder_scores(adversarial_type: str | None) -> ScoreRecord:
-    """Build nullable Week 2 score placeholders for an evaluation record."""
-
-    _ = adversarial_type
-    return ScoreRecord()
