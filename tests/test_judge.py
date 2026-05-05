@@ -1,4 +1,4 @@
-from src.scoring.judge import FakeJudgeClient, JudgeVerdict
+from src.scoring.judge import FakeJudgeClient, JudgeVerdict, _parse_judge_json
 from src.tasks.loader import (
     ExpectedToolSequence,
     SqlValidationHints,
@@ -78,3 +78,10 @@ def test_fake_judge_fails_unrelated_argument_intent() -> None:
 
     assert verdict.score == 0
     assert "missing" in verdict.rationale.lower()
+
+
+def test_parse_judge_json_rejects_invalid_schema_without_coercion() -> None:
+    verdict = _parse_judge_json('{"score": true, "rationale": 123, "extra": "ignored"}')
+
+    assert verdict.score == 0
+    assert "invalid judge json schema" in verdict.rationale.lower()

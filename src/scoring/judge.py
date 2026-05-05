@@ -6,7 +6,7 @@ from json import JSONDecodeError
 from pathlib import Path
 from typing import Any, Protocol
 
-from pydantic import BaseModel, ConfigDict, field_validator
+from pydantic import BaseModel, ConfigDict, ValidationError, field_validator
 
 from src.config import EvalConfig
 from src.tasks.loader import TaskDefinition
@@ -192,11 +192,15 @@ def _parse_judge_json(content: str) -> JudgeVerdict:
             rationale=f"Invalid judge JSON: {exc.msg}.",
         )
 
+    if not isinstance(raw, dict):
+        return JudgeVerdict(
+            score=0,
+            rationale="Invalid judge JSON schema: expected object.",
+        )
+
     try:
-        score = int(raw["score"])
-        rationale = str(raw["rationale"])
-        return JudgeVerdict(score=score, rationale=rationale)
-    except (KeyError, TypeError, ValueError) as exc:
+        return JudgeVerdict.model_validate(raw)
+    except ValidationError as exc:
         return JudgeVerdict(
             score=0,
             rationale=f"Invalid judge JSON schema: {exc}.",
