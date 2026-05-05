@@ -7,3 +7,12 @@
         - ["sql_query"]
   adversarial_type: null
   notes: "Starter Week 1 demo task for querying total sales revenue grouped by category."
+  validation_hints:
+    sql:
+      required_tables:
+        - sales
+      required_columns:
+        - category
+        - revenue
+      required_clauses:
+        - group_by

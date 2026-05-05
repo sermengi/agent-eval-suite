@@ -38,6 +38,43 @@ class ExpectedToolSequence(BaseModel):
         return self
 
 
+class SqlValidationHints(BaseModel):
+    """Rule-based SQL validation hints for argument faithfulness scoring."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    required_tables: list[str] | None = None
+    required_columns: list[str] | None = None
+    required_clauses: list[str] | None = None
+
+
+class SummarizeValidationHints(BaseModel):
+    """Rule-based summarize validation hints for argument faithfulness scoring."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    required_format: str | None = None
+
+
+class PythonValidationHints(BaseModel):
+    """Rule-based Python validation hints for argument faithfulness scoring."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    required_variables: list[str] | None = None
+    required_modules: list[str] | None = None
+
+
+class ValidationHints(BaseModel):
+    """Optional task-level hints for rule-based argument validation."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    sql: SqlValidationHints | None = None
+    summarize: SummarizeValidationHints | None = None
+    python: PythonValidationHints | None = None
+
+
 class TaskDefinition(BaseModel):
     """Validated YAML definition for one evaluation task."""
 
@@ -50,6 +87,7 @@ class TaskDefinition(BaseModel):
     expected_tool_sequence: list[ExpectedToolSequence] = Field(min_length=1)
     adversarial_type: AdversarialType | None
     notes: str
+    validation_hints: ValidationHints | None = None
 
     @model_validator(mode="after")
     def validate_adversarial_type(self) -> TaskDefinition:

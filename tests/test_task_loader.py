@@ -20,6 +20,19 @@ def test_loads_starter_normal_task() -> None:
     assert task.notes
 
 
+def test_loads_task_validation_hints_for_task_001() -> None:
+    tasks = load_task_file("tasks/normal/tasks_001_020.yaml")
+
+    task = tasks[0]
+
+    assert task.id == "task_001"
+    assert task.validation_hints is not None
+    assert task.validation_hints.sql is not None
+    assert task.validation_hints.sql.required_tables == ["sales"]
+    assert task.validation_hints.sql.required_columns == ["category", "revenue"]
+    assert task.validation_hints.sql.required_clauses == ["group_by"]
+
+
 def test_accepts_single_object_yaml(tmp_path: Path) -> None:
     task_path = tmp_path / "task.yaml"
     task_path.write_text(
@@ -46,6 +59,29 @@ notes: Ambiguous metric wording.
         ["sql_query"],
         ["sql_query", "summarize"],
     ]
+
+
+def test_accepts_task_without_validation_hints(tmp_path: Path) -> None:
+    task_path = tmp_path / "task.yaml"
+    task_path.write_text(
+        """
+id: task_without_hints
+category: normal
+description: What was total revenue?
+reference_answer: Total revenue is the sum of sales revenue.
+expected_tool_sequence:
+  - acceptable_sequences:
+      - ["sql_query"]
+adversarial_type: null
+notes: Validation hints are optional.
+""",
+        encoding="utf-8",
+    )
+
+    tasks = load_task_file(task_path)
+
+    assert len(tasks) == 1
+    assert tasks[0].validation_hints is None
 
 
 def test_rejects_invalid_category(tmp_path: Path) -> None:
