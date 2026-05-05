@@ -213,6 +213,47 @@ def test_rejects_out_of_range_scores(
         score_model(**payload)
 
 
+@pytest.mark.parametrize(
+    ("score_model", "payload"),
+    [
+        (
+            TaskCompletionScore,
+            {
+                "score": True,
+                "rationale": "Invalid coerced score.",
+                "judge_model": "gpt-4o-mini",
+                "prompt_version": "v1",
+            },
+        ),
+        (
+            ToolSelectionAccuracyScore,
+            {
+                "score": "1.0",
+                "rationale": "Invalid coerced score.",
+                "expected_sequences": [["sql_query"]],
+                "actual_sequence": ["sql_query"],
+            },
+        ),
+    ],
+)
+def test_rejects_coerced_score_types(score_model: type, payload: dict[str, object]) -> None:
+    with pytest.raises(ValidationError):
+        score_model(**payload)
+
+
+def test_rejects_inconsistent_argument_faithfulness_final_score() -> None:
+    with pytest.raises(ValidationError, match="final_score"):
+        ArgumentFaithfulnessScore(
+            schema_score=0.0,
+            schema_rationale="Schema failed.",
+            intent_score=0.0,
+            intent_rationale="Intent failed.",
+            final_score=1.0,
+            judge_model="gpt-4o-mini",
+            prompt_version="v1",
+        )
+
+
 def test_result_recorder_writes_jsonl_and_creates_parent_directory(tmp_path) -> None:
     output_path = tmp_path / "nested" / "results.jsonl"
     record_path = ResultRecorder(output_path).record(make_record())

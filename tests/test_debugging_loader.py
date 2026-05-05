@@ -7,7 +7,13 @@ from pathlib import Path
 from src.config import EvalConfig, load_config
 from src.debugging.loader import DebugRunLoader
 from src.debugging.schemas import DebugEvent, DebugTrace
-from src.logging.recorder import EvaluationRecord, ScoreRecord
+from src.logging.recorder import (
+    ArgumentFaithfulnessScore,
+    EvaluationRecord,
+    ScoreRecord,
+    TaskCompletionScore,
+    ToolSelectionAccuracyScore,
+)
 
 VALID_CONFIG_HASH = "b" * 64
 NOW = datetime(2025, 1, 1, 12, 0, tzinfo=timezone.utc)
@@ -117,7 +123,30 @@ def make_record(
         user_message="What was total revenue?",
         tool_call_trace=[],
         final_response="Total revenue was $100.",
-        scores=ScoreRecord(),
+        scores=ScoreRecord(
+            task_completion=TaskCompletionScore(
+                score=1,
+                rationale="The response answers the task.",
+                judge_model="gpt-4o-mini",
+                prompt_version="v1",
+            ),
+            tool_selection_accuracy=ToolSelectionAccuracyScore(
+                score=1.0,
+                rationale="The expected SQL tool was used.",
+                expected_sequences=[["sql_query"]],
+                actual_sequence=["sql_query"],
+            ),
+            argument_faithfulness=ArgumentFaithfulnessScore(
+                schema_score=1.0,
+                schema_rationale="The SQL matches schema expectations.",
+                intent_score=1.0,
+                intent_rationale="The SQL matches user intent.",
+                final_score=1.0,
+                judge_model="gpt-4o-mini",
+                prompt_version="v1",
+            ),
+            adversarial_robustness=None,
+        ),
         composite_score=None,
         judge_model="gpt-4o-mini",
         judge_prompt_versions={"tc": "v1", "af": "v1"},

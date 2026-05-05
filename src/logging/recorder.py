@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from src.debugging.schemas import DebugTrace
 
@@ -25,7 +25,7 @@ class ToolCallTraceRecord(BaseModel):
 class TaskCompletionScore(BaseModel):
     """Validated task completion score for one evaluation record."""
 
-    model_config = ConfigDict(extra="forbid")
+    model_config = ConfigDict(extra="forbid", strict=True)
 
     score: int
     rationale: str
@@ -45,7 +45,7 @@ class TaskCompletionScore(BaseModel):
 class ToolSelectionAccuracyScore(BaseModel):
     """Validated tool selection accuracy score for one evaluation record."""
 
-    model_config = ConfigDict(extra="forbid")
+    model_config = ConfigDict(extra="forbid", strict=True)
 
     score: float
     rationale: str
@@ -65,7 +65,7 @@ class ToolSelectionAccuracyScore(BaseModel):
 class ArgumentFaithfulnessScore(BaseModel):
     """Validated argument faithfulness score for one evaluation record."""
 
-    model_config = ConfigDict(extra="forbid")
+    model_config = ConfigDict(extra="forbid", strict=True)
 
     schema_score: float
     schema_rationale: str
@@ -84,11 +84,20 @@ class ArgumentFaithfulnessScore(BaseModel):
             raise ValueError("score must be between 0.0 and 1.0")
         return value
 
+    @model_validator(mode="after")
+    def validate_final_score_average(self) -> ArgumentFaithfulnessScore:
+        """Validate that final score is the mean of schema and intent scores."""
+
+        expected_final_score = (self.schema_score + self.intent_score) / 2
+        if abs(self.final_score - expected_final_score) > 1e-9:
+            raise ValueError("final_score must equal average of schema_score and intent_score")
+        return self
+
 
 class AdversarialRobustnessScore(BaseModel):
     """Validated adversarial robustness score for one evaluation record."""
 
-    model_config = ConfigDict(extra="forbid")
+    model_config = ConfigDict(extra="forbid", strict=True)
 
     score: int
     rationale: str
