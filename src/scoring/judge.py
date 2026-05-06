@@ -33,9 +33,7 @@ class JudgeVerdict(BaseModel):
 class JudgeClient(Protocol):
     """Interface for task completion and argument-intent judges."""
 
-    def judge_task_completion(
-        self, task: TaskDefinition, final_response: str
-    ) -> JudgeVerdict:
+    def judge_task_completion(self, task: TaskDefinition, final_response: str) -> JudgeVerdict:
         """Judge whether a final response completes the task."""
 
     def judge_argument_intent(
@@ -47,9 +45,7 @@ class JudgeClient(Protocol):
 class FakeJudgeClient:
     """Deterministic judge client for local tests and offline development."""
 
-    def judge_task_completion(
-        self, task: TaskDefinition, final_response: str
-    ) -> JudgeVerdict:
+    def judge_task_completion(self, task: TaskDefinition, final_response: str) -> JudgeVerdict:
         """Pass non-empty, non-error final responses."""
 
         normalized = final_response.strip().lower()
@@ -97,9 +93,7 @@ class OpenAIJudgeClient:
         self._prompt_versions = dict(config.judge.prompt_versions)
         self._prompts_dir = Path(prompts_dir)
 
-    def judge_task_completion(
-        self, task: TaskDefinition, final_response: str
-    ) -> JudgeVerdict:
+    def judge_task_completion(self, task: TaskDefinition, final_response: str) -> JudgeVerdict:
         """Judge whether a final response completes the task."""
 
         prompt = self._load_prompt("tc")

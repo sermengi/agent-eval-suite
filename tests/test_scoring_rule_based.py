@@ -152,9 +152,7 @@ def test_argument_schema_fails_unknown_sql_column(tmp_path: Path) -> None:
 
 def test_argument_schema_fails_unknown_sql_table(tmp_path: Path) -> None:
     task = _task(
-        validation_hints=ValidationHints(
-            sql=SqlValidationHints(required_columns=["revenue"])
-        )
+        validation_hints=ValidationHints(sql=SqlValidationHints(required_columns=["revenue"]))
     )
 
     score, rationale = validate_argument_schema(

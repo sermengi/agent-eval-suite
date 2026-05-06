@@ -71,11 +71,7 @@ def main() -> None:
         if args.client == "fake"
         else OpenAIModelClient(model=config.models.openai)
     )
-    judge_client = (
-        FakeJudgeClient()
-        if args.judge_client == "fake"
-        else OpenAIJudgeClient(config)
-    )
+    judge_client = FakeJudgeClient() if args.judge_client == "fake" else OpenAIJudgeClient(config)
     scoring_config = _scoring_config(config, args.judge_client)
     model_name = "fake" if args.client == "fake" else config.models.openai
     tasks = load_tasks(config.tasks.paths)

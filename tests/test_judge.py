@@ -16,9 +16,7 @@ def _task_001() -> TaskDefinition:
             "Total revenue should be grouped by product category and reported as "
             "category-level revenue totals."
         ),
-        expected_tool_sequence=[
-            ExpectedToolSequence(acceptable_sequences=[["sql_query"]])
-        ],
+        expected_tool_sequence=[ExpectedToolSequence(acceptable_sequences=[["sql_query"]])],
         adversarial_type=None,
         notes="Starter task.",
         validation_hints=ValidationHints(

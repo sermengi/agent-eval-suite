@@ -33,9 +33,7 @@ def compute_scores(
 ) -> tuple[ScoreRecord, float]:
     """Compute nested dimension scores and the weighted composite score."""
 
-    task_completion_verdict = judge_client.judge_task_completion(
-        task, result.final_response
-    )
+    task_completion_verdict = judge_client.judge_task_completion(task, result.final_response)
     tool_selection_score = score_tool_selection(task, result.tool_call_trace)
     schema_score, schema_rationale = validate_argument_schema(
         task,
@@ -43,9 +41,7 @@ def compute_scores(
         config.database.path,
         config.tools.allowed_python_modules,
     )
-    intent_verdict = judge_client.judge_argument_intent(
-        task, _tool_arguments_payload(result)
-    )
+    intent_verdict = judge_client.judge_argument_intent(task, _tool_arguments_payload(result))
     argument_faithfulness = ArgumentFaithfulnessScore(
         schema_score=schema_score,
         schema_rationale=schema_rationale,
@@ -85,13 +81,10 @@ def _composite_score(scores: ScoreRecord) -> float:
         "argument_faithfulness": scores.argument_faithfulness.final_score,
     }
     if scores.adversarial_robustness is not None:
-        available_scores["adversarial_robustness"] = float(
-            scores.adversarial_robustness.score
-        )
+        available_scores["adversarial_robustness"] = float(scores.adversarial_robustness.score)
 
     total_weight = sum(COMPOSITE_WEIGHTS[name] for name in available_scores)
     weighted_score = sum(
-        available_scores[name] * COMPOSITE_WEIGHTS[name]
-        for name in available_scores
+        available_scores[name] * COMPOSITE_WEIGHTS[name] for name in available_scores
     )
     return weighted_score / total_weight
