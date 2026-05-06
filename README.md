@@ -7,7 +7,7 @@ not hidden behind correct-looking final answers.
 
 ## Current Scope
 
-The current implementation covers the Week 1 and Week 2 slices:
+The current implementation covers the Week 1, Week 2, and Week 3 scoring slices:
 
 - deterministic local SQLite database generation
 - the three fixed tools: `sql_query`, `python_exec`, and `summarize`
@@ -15,8 +15,10 @@ The current implementation covers the Week 1 and Week 2 slices:
 - YAML task loading from `tasks/`
 - one configured task run end to end
 - structured JSONL result logging with the final evaluation record schema
+- nested scoring for task completion, tool selection accuracy, argument faithfulness,
+  adversarial robustness, and composite score
 
-Scoring, MLflow, Docker, Mistral runs, and the full 50-task set are later milestones.
+MLflow, Docker, Mistral runs, and the full 50-task set are later milestones.
 
 ## Setup
 
@@ -33,10 +35,14 @@ uv run python scripts/generate_db.py --config configs/eval.yaml
 ## Run One Configured Task
 
 ```bash
-uv run python scripts/run_eval.py --config configs/eval.yaml --client fake
+uv run python scripts/run_eval.py --config configs/eval.yaml --client fake --judge-client fake
 ```
 
-Use `--client openai` only when `OPENAI_API_KEY` is set.
+Use `--client openai` to evaluate the OpenAI-backed agent and `--judge-client openai`
+to score with the configured OpenAI judge. Either OpenAI option requires
+`OPENAI_API_KEY` to be set. The two flags are independent so offline development can
+use the deterministic fake agent, deterministic fake judge, or a mix of fake and OpenAI
+components.
 
 The CLI loads the first configured YAML task, runs the agent, and appends one structured
 record to `results/runs.jsonl`. Generated result files are ignored by git.
@@ -74,7 +80,8 @@ against the fixed tool set.
 ## Result Logs
 
 Run records are written as JSONL using the final schema shape from `CLAUDE.md`.
-Week 3 scoring fields are present but currently logged as `null` placeholders.
+Week 3 scoring is logged as nested per-dimension objects rather than flat placeholder
+fields.
 
 Each record includes:
 
@@ -82,9 +89,18 @@ Each record includes:
 - model and task metadata
 - full tool call trace
 - final agent response
-- nullable dimension scores
+- `scores.task_completion` with binary judge score and rationale
+- `scores.tool_selection_accuracy` with rule-based sequence score
+- `scores.argument_faithfulness` with schema, intent, and final scores
+- `scores.adversarial_robustness`, which is `null` for normal and ambiguous tasks
+- weighted `composite_score`
 - judge model and prompt versions
 - SHA-256 config hash
+
+The default fake judge is deterministic and offline: it passes non-error final answers
+and checks task validation hints against serialized tool arguments. The OpenAI judge
+uses the configured judge model with versioned prompts from `prompts/` for task
+completion and argument-intent scoring.
 
 ## Test And Check
 

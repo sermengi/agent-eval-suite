@@ -293,6 +293,8 @@ def test_run_eval_cli_fake_client(tmp_path) -> None:
             str(config_path),
             "--client",
             "fake",
+            "--judge-client",
+            "fake",
         ],
         capture_output=True,
         text=True,
@@ -310,14 +312,11 @@ def test_run_eval_cli_fake_client(tmp_path) -> None:
     assert record["model_name"] == "fake"
     assert record["tool_call_trace"][0]["step"] == 1
     assert record["tool_call_trace"][0]["tool_name"] == "sql_query"
-    assert record["scores"]["task_completion"] is None
-    assert record["scores"]["task_completion_rationale"] is None
-    assert record["scores"]["tool_selection_accuracy"] is None
-    assert record["scores"]["argument_faithfulness_schema"] is None
-    assert record["scores"]["argument_faithfulness_intent"] is None
-    assert record["scores"]["argument_faithfulness_final"] is None
+    assert record["scores"]["task_completion"]["score"] == 1
+    assert record["scores"]["tool_selection_accuracy"]["score"] == 1.0
+    assert record["scores"]["argument_faithfulness"]["final_score"] is not None
     assert record["scores"]["adversarial_robustness"] is None
-    assert record["composite_score"] is None
+    assert record["composite_score"] is not None
     assert len(record["config_hash"]) == 64
 
     debug_files = list((tmp_path / "debug_traces").glob("*.json"))

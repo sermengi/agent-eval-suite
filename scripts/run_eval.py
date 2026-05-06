@@ -19,8 +19,9 @@ from src.logging.recorder import (  # noqa: E402
     EvaluationRecord,
     ResultRecorder,
     ToolCallTraceRecord,
-    build_placeholder_scores,
 )
+from src.scoring.aggregator import compute_scores  # noqa: E402
+from src.scoring.judge import FakeJudgeClient, OpenAIJudgeClient  # noqa: E402
 from src.tasks.loader import load_tasks  # noqa: E402
 
 
@@ -37,11 +38,12 @@ def _run_id(timestamp: datetime) -> str:
 
 
 def main() -> None:
-    """Run the Week 2 evaluation skeleton."""
+    """Run one configured task and record nested Week 3 scores."""
 
-    parser = argparse.ArgumentParser(description="Run the Week 2 evaluation skeleton.")
+    parser = argparse.ArgumentParser(description="Run one configured evaluation task.")
     parser.add_argument("--config", default="configs/eval.yaml")
     parser.add_argument("--client", choices=["fake", "openai"], default="fake")
+    parser.add_argument("--judge-client", choices=["fake", "openai"], default="fake")
     args = parser.parse_args()
 
     config_path = Path(args.config)
@@ -53,6 +55,11 @@ def main() -> None:
         FakeModelClient()
         if args.client == "fake"
         else OpenAIModelClient(model=config.models.openai)
+    )
+    judge_client = (
+        FakeJudgeClient()
+        if args.judge_client == "fake"
+        else OpenAIJudgeClient(config)
     )
     model_name = "fake" if args.client == "fake" else config.models.openai
     tasks = load_tasks(config.tasks.paths)
@@ -78,6 +85,7 @@ def main() -> None:
         task_category=task.category,
         adversarial_type=task.adversarial_type,
     ).run(task.description)
+    scores, composite_score = compute_scores(task, result, config, judge_client)
     record = EvaluationRecord(
         run_id=run_id,
         timestamp=timestamp,
@@ -98,8 +106,8 @@ def main() -> None:
             for step, tool_call in enumerate(result.tool_call_trace, start=1)
         ],
         final_response=result.final_response,
-        scores=build_placeholder_scores(task.adversarial_type),
-        composite_score=None,
+        scores=scores,
+        composite_score=composite_score,
         judge_model=config.judge.model,
         judge_prompt_versions=config.judge.prompt_versions,
         config_hash=_config_hash(config_path),
