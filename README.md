@@ -79,9 +79,9 @@ against the fixed tool set.
 
 ## Result Logs
 
-Run records are written as JSONL using the final schema shape from `CLAUDE.md`.
-Week 3 scoring is logged as nested per-dimension objects rather than flat placeholder
-fields.
+Run records are written as JSONL using the Week 3 nested score schema. This intentionally
+evolves the flat illustrative schema in `CLAUDE.md` so each dimension can carry its own
+score evidence and rationale.
 
 Each record includes:
 

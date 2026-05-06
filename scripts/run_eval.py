@@ -11,7 +11,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from scripts.generate_db import generate_database  # noqa: E402
 from src.agent.runner import AgentRunner  # noqa: E402
-from src.config import DebugStorage, load_config  # noqa: E402
+from src.config import DebugStorage, EvalConfig, JudgeConfig, load_config  # noqa: E402
 from src.debugging.tracer import build_debug_tracer  # noqa: E402
 from src.inference.fake_client import FakeModelClient  # noqa: E402
 from src.inference.openai_client import OpenAIModelClient  # noqa: E402
@@ -35,6 +35,21 @@ def _run_id(timestamp: datetime) -> str:
     """Build a compact run identifier from a UTC date and random suffix."""
 
     return f"{timestamp:%Y%m%d}-{uuid4().hex[:6]}"
+
+
+def _scoring_config(config: EvalConfig, judge_client_name: str) -> EvalConfig:
+    """Return a config copy with explicit judge provenance for score records."""
+
+    if judge_client_name != "fake":
+        return config
+    return config.model_copy(
+        update={
+            "judge": JudgeConfig(
+                model="fake",
+                prompt_versions=config.judge.prompt_versions,
+            )
+        }
+    )
 
 
 def main() -> None:
@@ -61,6 +76,7 @@ def main() -> None:
         if args.judge_client == "fake"
         else OpenAIJudgeClient(config)
     )
+    scoring_config = _scoring_config(config, args.judge_client)
     model_name = "fake" if args.client == "fake" else config.models.openai
     tasks = load_tasks(config.tasks.paths)
     if not tasks:
@@ -85,7 +101,7 @@ def main() -> None:
         task_category=task.category,
         adversarial_type=task.adversarial_type,
     ).run(task.description)
-    scores, composite_score = compute_scores(task, result, config, judge_client)
+    scores, composite_score = compute_scores(task, result, scoring_config, judge_client)
     record = EvaluationRecord(
         run_id=run_id,
         timestamp=timestamp,
@@ -108,8 +124,8 @@ def main() -> None:
         final_response=result.final_response,
         scores=scores,
         composite_score=composite_score,
-        judge_model=config.judge.model,
-        judge_prompt_versions=config.judge.prompt_versions,
+        judge_model=scoring_config.judge.model,
+        judge_prompt_versions=scoring_config.judge.prompt_versions,
         config_hash=_config_hash(config_path),
         debug_trace=result.debug_trace if config.debug.storage == DebugStorage.EMBEDDED else None,
     )
